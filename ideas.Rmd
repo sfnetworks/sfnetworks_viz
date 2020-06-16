@@ -13,6 +13,29 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### Layout
 
+Defines how nodes are placed on the plot, so where to put each node. 
+
+We can first try with getting x and y coordinates of the geometry list column
+
+```{r, eval = F}
+library(ggraph)
+library(tidygraph)
+library(sfnetworks)
+library(sf)
+library(ggplot2)
+graph_layout = roxel %>% 
+  as_sfnetwork(directed = F) %>% 
+  convert(to_spatial_coordinates)
+
+graph_layout
+
+sf = ggraph:::layout_tbl_graph_manual(
+  graph_layout, X, Y, circular = F
+)
+layout <- create_layout(graph, layout = 'spatial')
+layout
+```
+
 ### Nodes and edges
 wrap around geom_sf / ggproto layer GeomSf
 
@@ -46,9 +69,19 @@ ggraph(graph, 'focus', focus = node_is_center()) +
   )
 ```
 
+
+
 ```{r}
-library(ggraph)
-layout <- create_layout(graph, layout = 'eigen')
-layout
+nodes = graph %>% activate(nodes) %>% st_as_sf()
+ggraph(graph) +
+  geom_sf(data = nodes) 
+
+geom_edge_spatial = function(x) {
+  edges = st_as_sf(x, 'edges')
+  geom_sf(data = edges)
+}
+
+ggraph(graph) +
+  geom_edge_spatial(graph)
 ```
 
