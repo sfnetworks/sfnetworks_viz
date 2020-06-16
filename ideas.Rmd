@@ -1,0 +1,54 @@
+---
+title: "ideas"
+author: "Lorena Abad"
+date: "6/16/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Ideas for ggraph
+
+### Layout
+
+### Nodes and edges
+wrap around geom_sf / ggproto layer GeomSf
+
+- geom_edges_spatial
+- geom_edges_straight
+- geom_nodes_spatial
+
+
+Integration between ggraph and spatial ggplot2
+No need to escape the network
+ggraph would accept an object of class `sfnetwork`
+
+```{r}
+library(sfnetworks)
+library(tidygraph)
+library(sf)
+library(ggraph)
+graph = roxel %>% 
+  as_sfnetwork(directed = F) %>% convert(to_components)
+ggraph(graph, 'focus', focus = node_is_center()) +
+  ggforce::geom_circle(
+    aes(x0 = 0, y0 = 0, r = r), 
+    data.frame(r = 1:20), colour = 'grey'
+  ) +
+  geom_edge_link() +
+  geom_node_point(color = 'orangered') +
+  coord_fixed() +
+  theme(
+    panel.background = element_rect(fill = "transparent"),
+    plot.background = element_rect(fill = "transparent", color = NA)
+  )
+```
+
+```{r}
+library(ggraph)
+layout <- create_layout(graph, layout = 'eigen')
+layout
+```
+
