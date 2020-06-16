@@ -24,9 +24,11 @@ roxel_net %>%
 
 layout_sf <- function(graph){
   graph %>% 
-    to_spatial_coordinates() %>% 
-    .$coords_graph %>% 
-    rename(x = X, y = Y)
+    activate("nodes") %>% 
+    mutate(
+      x = sf::st_coordinates(.)[,"X"],
+      y = sf::st_coordinates(.)[,"Y"]
+    )
 }
 
 edges <- roxel %>% 
@@ -34,28 +36,46 @@ edges <- roxel %>%
   activate("edges") %>% 
   sf::st_as_sf()
 
-geom_edge_sf <- function(ig, ...){
-  edges <- ig$data %>% 
-    as_sfnetwork(directed = FALSE) %>% 
-    activate("edges") %>% 
-    sf::st_as_sf()
-  geom_sf(ig, data = edges, ...)
-}
-
 geom_edge_spatial = function(x, ...) {
   edges = sf::st_as_sf(x, 'edges')
   geom_sf(data = edges, ...)
 }
 
 # computes layout
-roxel %>%
-  as_sfnetwork(directed = F, edges_as_lines = TRUE) %>% 
-  ggraph(layout = layout_sf) +
-  geom_node_point() +
-  geom_edge_link(aes(color = type))
-
 ig <- roxel %>%
   as_sfnetwork(directed = F, edges_as_lines = TRUE) %>% 
   ggraph(layout = layout_sf) +
   geom_node_point() +
   geom_edge_link(aes(color = type))
+
+
+geom_edge_sf <- function(p, ...){
+  edges <- attr(p$data, "graph") %>% 
+    as_sfnetwork(directed = FALSE) %>% 
+    activate("edges") %>% 
+    sf::st_as_sf()
+  p + geom_sf(data = edges, ...)
+}
+
+foo <- function(){
+  attr(data, "graph") %>% 
+    as_sfnetwork(directed = FALSE) %>% 
+    activate("edges")
+}
+
+roxel %>%
+  as_sfnetwork(directed = F, edges_as_lines = TRUE) %>% 
+  ggraph(layout = layout_sf) +
+  geom_node_point() + 
+  geom_sf(
+    data = foo()
+  )
+
+p
+
+edges <- attr(p$data, "graph") %>% 
+  as_sfnetwork(directed = FALSE) %>% 
+  activate("edges") %>% 
+  sf::st_as_sf()
+
+p + geom_sf(data = edges)
