@@ -26,7 +26,7 @@ already use it inside `ggraph()`.
 ### Some background on how `ggraph` works:
 
 -   [Layouts](https://ggraph.data-imaginist.com/articles/Layouts.html):
-    Defines how nodes are placed on the plot, so where to put each node.
+    Defines the position of the nodes in the plot.
 -   [Nodes](https://ggraph.data-imaginist.com/articles/Nodes.html): how
     the nodes are represented.
 -   [Edges](https://ggraph.data-imaginist.com/articles/Edges.html): how
@@ -50,7 +50,7 @@ already use it inside `ggraph()`.
 
 ### Let’s go to the code
 
-We first call the workforce (packages) and save our sample data on an
+We first call the workforce (packages) and save our sample data to an
 object:
 
     library(ggraph)
@@ -97,7 +97,6 @@ Since `sfnetwork` subclasses `tbl_graph` we can already put it into
 appropriate:
 
     roxel_net %>% 
-      as_tbl_graph() %>% 
       ggraph() +
       geom_node_point() +
       geom_edge_link()
@@ -135,7 +134,6 @@ But, for now let’s get going! We can now plot nodes on their
 geographical space! And than add any edge representation between them:
 
     roxel_net %>% 
-      # st_transform(3035) %>% 
       ggraph(layout = layout_sf) +
       geom_node_point() +
       geom_edge_arc()
@@ -150,16 +148,13 @@ First we fetch the edges:
 
     get_sf_edges <- function(){
       function(layout) {
-        attr(layout, "graph") %>% 
-          as_sfnetwork(directed = FALSE) %>% 
-          activate("edges") %>% 
-          sf::st_as_sf()
+        sf::st_as_sf(attr(layout, "graph"), "edges")
       }
     }
 
 And then we can create `geom_edge_sf()`:
 
-    geom_edge_sf = function (mapping = NULL, data = get_sf_edges(), ...){
+    geom_edge_sf <- function (mapping = NULL, data = get_sf_edges(), ...){
       geom_sf(data = data, mapping = mapping, ...)
     }
 
@@ -179,6 +174,8 @@ nicely!
 -   We still need to think how to handle lat/long data on the layout\_sf
     function, since unprojected networks can appear distorted when
     plotted.
+-   We should take a look internally at `layout_tbl_graph_manual` to
+    implement the new layout.
 
 ### Other visualization opportunities:
 

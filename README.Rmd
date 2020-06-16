@@ -21,7 +21,7 @@ This package is meant to support a grammar of graphics for relational data. It w
 
 ### Some background on how `ggraph` works:
 
-- [Layouts](https://ggraph.data-imaginist.com/articles/Layouts.html): Defines how nodes are placed on the plot, so where to put each node. 
+- [Layouts](https://ggraph.data-imaginist.com/articles/Layouts.html): Defines the position of the nodes in the plot. 
 - [Nodes](https://ggraph.data-imaginist.com/articles/Nodes.html): how the nodes are represented.
 - [Edges](https://ggraph.data-imaginist.com/articles/Edges.html): how the edges are represented.
 
@@ -33,7 +33,7 @@ This package is meant to support a grammar of graphics for relational data. It w
 
 ### Let's go to the code
 
-We first call the workforce (packages) and save our sample data on an object:
+We first call the workforce (packages) and save our sample data to an object:
 
 ```{r, message = F}
 library(ggraph)
@@ -51,7 +51,6 @@ Since `sfnetwork` subclasses `tbl_graph` we can already put it into `ggraph`, bu
 
 ```{r}
 roxel_net %>% 
-  as_tbl_graph() %>% 
   ggraph() +
   geom_node_point() +
   geom_edge_link()
@@ -84,7 +83,6 @@ But, for now let's get going! We can now plot nodes on their geographical space!
 
 ```{r}
 roxel_net %>% 
-  # st_transform(3035) %>% 
   ggraph(layout = layout_sf) +
   geom_node_point() +
   geom_edge_arc()
@@ -98,10 +96,7 @@ First we fetch the edges:
 ```{r}
 get_sf_edges <- function(){
   function(layout) {
-    attr(layout, "graph") %>% 
-      as_sfnetwork(directed = FALSE) %>% 
-      activate("edges") %>% 
-      sf::st_as_sf()
+    sf::st_as_sf(attr(layout, "graph"), "edges")
   }
 }
 ```
@@ -109,7 +104,7 @@ get_sf_edges <- function(){
 And then we can create `geom_edge_sf()`:
 
 ```{r}
-geom_edge_sf = function (mapping = NULL, data = get_sf_edges(), ...){
+geom_edge_sf <- function (mapping = NULL, data = get_sf_edges(), ...){
   geom_sf(data = data, mapping = mapping, ...)
 }
 ```
@@ -127,6 +122,7 @@ And there we have it! Note how the distortion get's handle by `geom_sf()` very n
 ### (Recap of) open issues:
 
 - We still need to think how to handle lat/long data on the layout_sf function, since unprojected networks can appear distorted when plotted. 
+- We should take a look internally at `layout_tbl_graph_manual` to implement the new layout.
 
 ### Other visualization opportunities:
 
