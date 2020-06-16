@@ -32,7 +32,7 @@ graph_layout
 sf = ggraph:::layout_tbl_graph_manual(
   graph_layout, X, Y, circular = F
 )
-layout <- create_layout(graph, layout = 'spatial')
+layout <- create_layout(graph, layout = 'sf')
 layout
 ```
 
@@ -69,8 +69,6 @@ ggraph(graph, 'focus', focus = node_is_center()) +
   )
 ```
 
-
-
 ```{r}
 nodes = graph %>% activate(nodes) %>% st_as_sf()
 ggraph(graph) +
@@ -81,7 +79,42 @@ geom_edge_spatial = function(x) {
   geom_sf(data = edges)
 }
 
+library(ggraph)
 ggraph(graph) +
   geom_edge_spatial(graph)
+```
+
+## Final thoughts:
+
+- We can create a layout based on sf coordinates
+    + We should make sure that CRS is respected and that there is no distorsion
+    + layout_tbl_graph_manual which is an internal function
+    
+- We can create a geom_edge_spatial or something similar that will take the geometry of the LINESTRING 
+- Maybe wrapped around geom_sf
+- Or taking a look at the draw_panel, sf::st_as_grob
+
+
+- We can create any representation of edges (spatially implicit) and we would add the spatially explicit
+
+
+### New opportunities
+
+- explore 3D representation, maybe with `rayshader` 
+  + this can take a look into st_zm coordinates
+- maybe look into interactive plotting: `mapview`
+  
+```{r}
+library(sfnetworks)
+library(ggplot2)
+library(sf)
+library(plotly)
+
+roxel
+
+g = ggplot() +
+  geom_sf(data = roxel, aes(color = type))
+
+ggplotly(g)
 ```
 
