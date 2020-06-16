@@ -1,2 +1,2 @@
 # sfnetworks_viz
-Place for the sfnetworks hackathon visualization
+Place for the hackathon on `sfnetworks` visualization
