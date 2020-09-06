@@ -44,7 +44,7 @@ library(sf)
 ```
 
 ```{r}
-(roxel_net = as_sfnetwork(roxel, directed = F)) 
+(roxel_net = as_sfnetwork(st_transform(roxel,31466), directed = F)) 
 ```
 
 Since `sfnetwork` subclasses `tbl_graph` we can already put it into `ggraph`, but the chosen layout for the nodes might not be the most appropriate:
@@ -77,23 +77,18 @@ roxel_net %>%
   geom_node_point()
 ```
 
-You will see some spatial distortion up there and that will be due to the lat/long nature of the `sfnetwork` CRS. This remains for now an issue to look into... 
+You will see some spatial distortion up there and that will be due to the CRS present on `sfnetwork` objects. 
 
-But, for now let's get going! We can now plot nodes on their geographical space! And than add any edge representation between them:
+So to better plot nodes and edges in their geographical space, we propose creating new `geom_node_*()` and `geom_edge_*()` functions that builds on top of `geom_sf()` in ggplot2 which handles `sf` objects. 
 
-```{r}
-roxel_net %>% 
-  ggraph(layout = layout_sf) +
-  geom_node_point() +
-  geom_edge_arc()
-```
-
-
-But, we also want to be able to plot edges in their geographical space. So for this we propose creating a new `geom_edge_*()` function that builds on top of `geom_sf()` in ggplot2 which handles `sf` objects. 
-
-First we fetch the edges:
+First we fetch the nodes and edges:
 
 ```{r}
+get_sf_nodes <- function(){
+  function(layout) {
+    sf::st_as_sf(attr(layout, "graph"), "nodes")
+  }
+}
 get_sf_edges <- function(){
   function(layout) {
     sf::st_as_sf(attr(layout, "graph"), "edges")
@@ -101,9 +96,12 @@ get_sf_edges <- function(){
 }
 ```
 
-And then we can create `geom_edge_sf()`:
+And then we can create `geom_node_sf()` and `geom_edge_sf()`:
 
 ```{r}
+geom_node_sf <- function (mapping = NULL, data = get_sf_nodes(), ...){
+  geom_sf(data = data, mapping = mapping, ...)
+}
 geom_edge_sf <- function (mapping = NULL, data = get_sf_edges(), ...){
   geom_sf(data = data, mapping = mapping, ...)
 }
@@ -114,15 +112,27 @@ And we can easily add it to our plot!
 ```{r}
 roxel_net %>% 
   ggraph(layout = layout_sf) +
-  geom_node_point() + 
-  geom_edge_sf(aes(color = type))
+  geom_node_sf(color = 'grey30', size = 0.5) +
+  geom_edge_sf(aes(color = type)) 
 ```
+
+With any edge representation we want:
+
+```{r}
+roxel_net %>% 
+  ggraph(layout = layout_sf) +
+  geom_node_sf(color = 'grey30', size = 0.5) +
+  geom_edge_arc(aes(color = type)) 
+```
+
 And there we have it! Note how the distortion get's handle by `geom_sf()` very nicely!
 
-### (Recap of) open issues:
+### (Update of) open issues:
 
 - We still need to think how to handle lat/long data on the layout_sf function, since unprojected networks can appear distorted when plotted. 
+  + Creating a geom_node_sf as well as a geom_edge_sf would solve the problem, since it is not only for lat/long or unprojected networks.
 - We should take a look internally at `layout_tbl_graph_manual` to implement the new layout.
+  + It could be that the CRS should be handled on the layout function. Otherwise, when plotting nodes or edges without teh new `sf` geoms, the network is distorted.  
 
 ### Other visualization opportunities:
 
@@ -132,7 +142,7 @@ And there we have it! Note how the distortion get's handle by `geom_sf()` very n
 
 ## Summary:
 
-- A `layout_sf()` function can be implemented to plot the nodes in their geographical space. 
-- A `geom_edge_sf()` function can be implemented to plot edges on their geographical space and still access their columns to map aesthetics.
+- A `layout_sf()` function can be implemented to plot the graph in their geographical space. 
+- Two new functions: `geom_node_sf()` and `geom_edge_sf()` functions can be implemented to plot the graph in its geographical space and still access their columns to map aesthetics.
 
 The ultimate goal would be to create a pull request to `ggraph`!

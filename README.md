@@ -59,37 +59,37 @@ object:
     library(sfnetworks)
     library(sf)
 
-    (roxel_net = as_sfnetwork(roxel, directed = F)) 
+    (roxel_net = as_sfnetwork(st_transform(roxel,31466), directed = F)) 
 
     ## # An sfnetwork with 701 nodes and 851 edges
     ## #
-    ## # CRS:  EPSG:4326 
+    ## # CRS:  EPSG:31466 
     ## #
     ## # An undirected multigraph with 14 components with spatially explicit edges
     ## #
     ## # Node Data:     701 x 1 (active)
     ## # Geometry type: POINT
     ## # Dimension:     XY
-    ## # Bounding box:  xmin: 7.522622 ymin: 51.94151 xmax: 7.546705 ymax: 51.9612
-    ##              geometry
-    ##           <POINT [°]>
-    ## 1 (7.533722 51.95556)
-    ## 2 (7.533461 51.95576)
-    ## 3 (7.532442 51.95422)
-    ## 4  (7.53209 51.95328)
-    ## 5 (7.532709 51.95209)
-    ## 6 (7.532869 51.95257)
+    ## # Bounding box:  xmin: 2604716 ymin: 5757500 xmax: 2606378 ymax: 5759691
+    ##            geometry
+    ##         <POINT [m]>
+    ## 1 (2605475 5759072)
+    ## 2 (2605457 5759094)
+    ## 3 (2605391 5758921)
+    ## 4 (2605369 5758816)
+    ## 5 (2605414 5758684)
+    ## 6 (2605424 5758738)
     ## # ... with 695 more rows
     ## #
     ## # Edge Data:     851 x 5
     ## # Geometry type: LINESTRING
     ## # Dimension:     XY
-    ## # Bounding box:  xmin: 7.522594 ymin: 51.94151 xmax: 7.546705 ymax: 51.9612
-    ##    from    to name           type                                       geometry
-    ##   <int> <int> <fct>          <fct>                              <LINESTRING [°]>
-    ## 1     1     2 Havixbecker S~ residen~     (7.533722 51.95556, 7.533461 51.95576)
-    ## 2     3     4 Pienersallee   seconda~ (7.532442 51.95422, 7.53236 51.95377, 7.5~
-    ## 3     5     6 Schulte-Bernd~ residen~ (7.532709 51.95209, 7.532823 51.95239, 7.~
+    ## # Bounding box:  xmin: 2604715 ymin: 5757500 xmax: 2606378 ymax: 5759691
+    ##    from    to name            type                                      geometry
+    ##   <int> <int> <fct>           <fct>                             <LINESTRING [m]>
+    ## 1     1     2 Havixbecker St~ resident~       (2605475 5759072, 2605457 5759094)
+    ## 2     3     4 Pienersallee    secondary (2605391 5758921, 2605386 5758871, 2605~
+    ## 3     5     6 Schulte-Bernd-~ resident~ (2605414 5758684, 2605421 5758718, 2605~
     ## # ... with 848 more rows
 
 Since `sfnetwork` subclasses `tbl_graph` we can already put it into
@@ -127,33 +127,30 @@ We can now use this layout inside `ggraph`:
 ![](README_files/figure-markdown_strict/unnamed-chunk-5-1.png)
 
 You will see some spatial distortion up there and that will be due to
-the lat/long nature of the `sfnetwork` CRS. This remains for now an
-issue to look into…
+the CRS present on `sfnetwork` objects.
 
-But, for now let’s get going! We can now plot nodes on their
-geographical space! And than add any edge representation between them:
-
-    roxel_net %>% 
-      ggraph(layout = layout_sf) +
-      geom_node_point() +
-      geom_edge_arc()
-
-![](README_files/figure-markdown_strict/unnamed-chunk-6-1.png)
-
-But, we also want to be able to plot edges in their geographical space.
-So for this we propose creating a new `geom_edge_*()` function that
+So to better plot nodes and edges in their geographical space, we
+propose creating new `geom_node_*()` and `geom_edge_*()` functions that
 builds on top of `geom_sf()` in ggplot2 which handles `sf` objects.
 
-First we fetch the edges:
+First we fetch the nodes and edges:
 
+    get_sf_nodes <- function(){
+      function(layout) {
+        sf::st_as_sf(attr(layout, "graph"), "nodes")
+      }
+    }
     get_sf_edges <- function(){
       function(layout) {
         sf::st_as_sf(attr(layout, "graph"), "edges")
       }
     }
 
-And then we can create `geom_edge_sf()`:
+And then we can create `geom_node_sf()` and `geom_edge_sf()`:
 
+    geom_node_sf <- function (mapping = NULL, data = get_sf_nodes(), ...){
+      geom_sf(data = data, mapping = mapping, ...)
+    }
     geom_edge_sf <- function (mapping = NULL, data = get_sf_edges(), ...){
       geom_sf(data = data, mapping = mapping, ...)
     }
@@ -162,20 +159,36 @@ And we can easily add it to our plot!
 
     roxel_net %>% 
       ggraph(layout = layout_sf) +
-      geom_node_point() + 
-      geom_edge_sf(aes(color = type))
+      geom_node_sf(color = 'grey30', size = 0.5) +
+      geom_edge_sf(aes(color = type)) 
 
-![](README_files/figure-markdown_strict/unnamed-chunk-9-1.png) And there
-we have it! Note how the distortion get’s handle by `geom_sf()` very
-nicely!
+![](README_files/figure-markdown_strict/unnamed-chunk-8-1.png)
 
-### (Recap of) open issues:
+With any edge representation we want:
+
+    roxel_net %>% 
+      ggraph(layout = layout_sf) +
+      geom_node_sf(color = 'grey30', size = 0.5) +
+      geom_edge_arc(aes(color = type)) 
+
+![](README_files/figure-markdown_strict/unnamed-chunk-9-1.png)
+
+And there we have it! Note how the distortion get’s handle by
+`geom_sf()` very nicely!
+
+### (Update of) open issues:
 
 -   We still need to think how to handle lat/long data on the layout\_sf
     function, since unprojected networks can appear distorted when
     plotted.
+    -   Creating a geom\_node\_sf as well as a geom\_edge\_sf would
+        solve the problem, since it is not only for lat/long or
+        unprojected networks.
 -   We should take a look internally at `layout_tbl_graph_manual` to
     implement the new layout.
+    -   It could be that the CRS should be handled on the layout
+        function. Otherwise, when plotting nodes or edges without teh
+        new `sf` geoms, the network is distorted.
 
 ### Other visualization opportunities:
 
@@ -186,10 +199,10 @@ nicely!
 Summary:
 --------
 
--   A `layout_sf()` function can be implemented to plot the nodes in
+-   A `layout_sf()` function can be implemented to plot the graph in
     their geographical space.
--   A `geom_edge_sf()` function can be implemented to plot edges on
-    their geographical space and still access their columns to map
-    aesthetics.
+-   Two new functions: `geom_node_sf()` and `geom_edge_sf()` functions
+    can be implemented to plot the graph in its geographical space and
+    still access their columns to map aesthetics.
 
 The ultimate goal would be to create a pull request to `ggraph`!
